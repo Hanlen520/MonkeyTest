@@ -26,7 +26,7 @@ class BaseAdb(object):
         """
         check device, suport multi-devices
         """
-        result = self.call_adb("devices")
+        result = self.adb_call("devices")
         devices = result.partition('\n')[2].replace('\n', '').split('\tdevice')
         return [device for device in devices if len(device) > 2]
 
