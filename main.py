@@ -15,13 +15,33 @@ from multiprocessing import Pool
 
 import BaseAdb
 import MonkeyConfig
+import BaseReport
+from  BaseWriteReport import report
 
-PATH = lambda p: os.path.abspath(
-    os.path.join(os.path.dirname(__file__), p)
-)
+from BasePickle import readInfo
+from BasePickle import writeInfo
+from BasePickle import writeSum
+from File import base_file
+
+#PATH = lambda p: os.path.abspath(
+    #os.path.join(os.path.dirname(__file__), p)
+#)
+
+PATH = lambda p: os.path.abspath(os.path.join(os.path.dirname(os.path.realpath('__file__')), p)) #os.path.realpath(path)  返回path的真实路径
 
 ba = BaseAdb.BaseAdb()
 info = []
+
+
+def create_file(dev, app, data):
+    """
+    Create the info file
+    """
+    print("创建持久性文件...")
+    base_file(PATH("./info/sumInfo.pickle")).mkdir_file() # 用于记录是否已经测试完毕，里面存的是一个整数
+    base_file(PATH("./info/info.pickle")).mkdir_file() # 用于记录统计结果的信息，是[{}]的形式
+    writeSum(0, data, PATH("./info/sumInfo.pickle")) # 初始化记录当前真实连接的设备数
+    app[dev] = {"header": {"phone_name": dev}}
 
 def runtest():
     """
@@ -48,6 +68,7 @@ def start(devicess):
     devices = devicess["devices"]
     num = devicess["num"]
     app = {}
+    create_file(devices, app, num)
     mc = MonkeyConfig.monkeyConfig((PATH("monkey.ini")))
     mc["log"] = PATH("./log") + "/"
     mc["monkey_log"] = mc["log"] + "monkey.log"
@@ -59,8 +80,14 @@ def start(devicess):
         with open(mc["monkey_log"], encoding = "utf-8") as monkeylog:
             time.sleep(1)
             if monkeylog.read().count('Monkey finished') > 0 :
-                print(str(devices) + "  Test End.")
+                writeSum(1, path=PATH("./info/sumInfo.pickle"))
+                app[devices]["header"]["monkey_log"] = mc["monkey_log"]
+                writeInfo(app, PATH("./info/info.pickle"))
                 break
+
+    if readInfo(PATH("./info/sumInfo.pickle")) <= 0:
+        report(readInfo(PATH("./info/info.pickle")))
+        print("Kill adb server,test finished！")
 
 def start_monkey(cmd, log):
     """
