@@ -4,6 +4,8 @@
 import math
 import re
 import xlsxwriter
+import time
+import os
 
 import BaseCrash as crash
 
@@ -12,6 +14,7 @@ class BaseReport:
         self.wd = wd
         self._crashM = ["Test"]
         self.seed = "0"
+        self.ntime = time.strftime('%Y-%m-%d-%H:%M:%S', time.localtime(time.time()))
 
     def monitor(self, info):
         for t in info:
@@ -23,20 +26,25 @@ class BaseReport:
                     break
 
 
-    def get_seed(self):
-        """
-        get the seed
-        """
-        with open(log, encoding="utf-8") as monkey_log:
-            lines = monkey_log.readlines()
-            for line in lines:
-                if re.findall("seed=", line):
-                    self.seed = line
+    # def get_seed(self, log):
+    #    """
+    #    get the seed
+    #    """
+    #    with open(log, encoding="utf-8") as monkey_log:
+    #        lines = monkey_log.readlines()
+    #        for line in lines:
+    #            if re.findall("seed", line):
+    #                self.seed = line
                     
     def getCrashMessage(self, log):
         with open(log, encoding="utf-8") as monkey_log:
             lines = monkey_log.readlines()
             for line in lines:
+                self.ntime = time.strftime('%Y-%m-%d-%H:%M:%S', time.localtime(time.time()))
+                # screenshot
+                os.popen("adb shell screencap -p /sdcard/monkey_run.png")
+                # pull from phone
+                os.popen("adb pull /sdcard/monkey_run.png %s", os.path.dirname(log))
                 if re.findall(crash.ANR, line):
                     print("存在anr错误:" + line)
                     self._crashM.append(line)
@@ -46,18 +54,21 @@ class BaseReport:
                 if re.findall(crash.EXCEPTION, line):
                     print("存在exception错误:" + line)
                     self._crashM.append(line)
+                if re.findall("seed", line):
+                    self.seed = line
 
     def crash(self):
         if len(self._crashM):
             print(self._crashM)
             worksheet = self.wd.add_worksheet("Crash Detail")
             _write_center(worksheet, "A1", 'Crash', self.wd)
-            _write_center(worksheet, "B1", 'Type', self.wd)
+            _write_center(worksheet, "B1", 'Time', self.wd)
             _write_center(worksheet, "C1", 'Seed', self.wd)
             temp = 2
             for item in self._crashM:
                 _write_center(worksheet, "A" + str(temp), item, self.wd)
-                _write_center(worksheet, "B" + str(temp), self.seed, self.wd)
+                _write_center(worksheet, "B" + str(temp), self.ntime, self.wd)
+                _write_center(worksheet, "C" + str(temp), self.seed, self.wd)
                 temp = temp + 1
 
 
