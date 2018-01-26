@@ -15,6 +15,7 @@ class BaseReport:
         self._crashM = ["Test"]
         self.seed = "0"
         self.ntime = time.strftime('%Y-%m-%d-%H:%M:%S', time.localtime(time.time()))
+        self.path = "/"
 
     def monitor(self, info):
         for t in info:
@@ -23,6 +24,7 @@ class BaseReport:
                     print(t[wrap])
                     print(t[wrap]["header"]["phone_name"])
                     self.getCrashMessage(t[wrap]["header"]["monkey_log"])
+                    self.path = t[wrap]["header"]["monkey_log"]
                     break
 
 
@@ -40,11 +42,6 @@ class BaseReport:
         with open(log, encoding="utf-8") as monkey_log:
             lines = monkey_log.readlines()
             for line in lines:
-                self.ntime = time.strftime('%Y-%m-%d-%H:%M:%S', time.localtime(time.time()))
-                # screenshot
-                os.popen("adb shell screencap -p /sdcard/monkey_run.png")
-                # pull from phone
-                os.popen("adb pull /sdcard/monkey_run.png %s", os.path.dirname(log))
                 if re.findall(crash.ANR, line):
                     print("存在anr错误:" + line)
                     self._crashM.append(line)
@@ -60,6 +57,14 @@ class BaseReport:
     def crash(self):
         if len(self._crashM):
             print(self._crashM)
+            self.ntime = time.strftime('%Y-%m-%d-%H:%M:%S', time.localtime(time.time()))
+            # screenshot
+            os.popen("adb shell screencap -p /sdcard/monkey_run.png")
+            # pull from phone
+            time.sleep(2)
+            print(os.path.dirname(self.path))
+            os.popen("adb pull /sdcard/monkey_run.png %s" % (os.path.dirname(self.path)))
+            time.sleep(2)
             worksheet = self.wd.add_worksheet("Crash Detail")
             _write_center(worksheet, "A1", 'Crash', self.wd)
             _write_center(worksheet, "B1", 'Time', self.wd)
@@ -70,6 +75,7 @@ class BaseReport:
                 _write_center(worksheet, "B" + str(temp), self.ntime, self.wd)
                 _write_center(worksheet, "C" + str(temp), self.seed, self.wd)
                 temp = temp + 1
+            time.sleep(2)
 
 
     def close(self):
