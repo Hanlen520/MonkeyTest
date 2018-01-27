@@ -12,7 +12,7 @@ import BaseCrash as crash
 class BaseReport:
     def __init__(self, wd):
         self.wd = wd
-        self._crashM = ["Test"]
+        self._crashM = ["//Crash:java.lang.* (pid=8850)"]
         self.seed = "0"
         self.ntime = time.strftime('%Y-%m-%d-%H:%M:%S', time.localtime(time.time()))
         self.path = "/"
